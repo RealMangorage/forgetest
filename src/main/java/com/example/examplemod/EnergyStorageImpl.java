@@ -16,7 +16,19 @@ public abstract class EnergyStorageImpl<M, IM> implements ImmutabilityDefiner<M,
         return p_330401_.group(
                 Codec.INT.optionalFieldOf("energy", 0)
                         .forGetter(a -> {
-                            return a.getEnergyStored();
+                            return a.energy;
+                        }),
+                Codec.INT.optionalFieldOf("capacity", 1000)
+                        .forGetter(a -> {
+                            return a.capacity;
+                        }),
+                Codec.INT.optionalFieldOf("maxReceive", 1000)
+                        .forGetter(a -> {
+                            return a.maxReceive;
+                        }),
+                Codec.INT.optionalFieldOf("maxExtract", 1000)
+                        .forGetter(a -> {
+                            return a.maxExtract;
                         })
         ).apply(p_330401_, EnergyStorageImpl.Immutable::new);
     });
@@ -26,16 +38,19 @@ public abstract class EnergyStorageImpl<M, IM> implements ImmutabilityDefiner<M,
 
     public static final class Immutable extends EnergyStorageImpl<Mutable, Immutable> implements MutableProvider<Mutable>, IEnergyStorage {
         private final int energy;
-        private final int capacity = 10000;
-        private final int maxReceive = 1000;
-        private final int maxExtract = 1000;
+        private final int capacity;
+        private final int maxReceive;
+        private final int maxExtract;
 
-        public Immutable(int energy) {
+        public Immutable(int energy, int capacity, int maxReceive, int maxExtract) {
             this.energy = energy;
+            this.capacity = capacity;
+            this.maxReceive = maxReceive;
+            this.maxExtract = maxExtract;
         }
         @Override
         public Mutable mutable() {
-            return new Mutable(energy);
+            return new Mutable(energy, capacity, maxReceive, maxExtract);
         }
 
         public int receiveEnergy(int maxReceive, boolean simulate) {
@@ -72,18 +87,21 @@ public abstract class EnergyStorageImpl<M, IM> implements ImmutabilityDefiner<M,
     }
 
     public static final class Mutable extends EnergyStorageImpl<Mutable, Immutable> implements ImmutableProvider<Immutable>, IEnergyStorage {
-        protected int energy;
-        private final int capacity = 10000;
-        private final int maxReceive = 1000;
-        private final int maxExtract = 1000;
+        private int energy;
+        private final int capacity;
+        private final int maxReceive;
+        private final int maxExtract;
 
-        public Mutable(int energy) {
+        public Mutable(int energy, int capacity, int maxReceive, int maxExtract) {
             this.energy = energy;
+            this.capacity = capacity;
+            this.maxReceive = maxReceive;
+            this.maxExtract = maxExtract;
         }
 
         @Override
         public Immutable immutable() {
-            return new Immutable(energy);
+            return new Immutable(energy, capacity, maxReceive, maxExtract);
         }
 
         public int receiveEnergy(int maxReceive, boolean simulate) {

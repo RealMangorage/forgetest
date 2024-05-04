@@ -2,23 +2,24 @@ package com.example.examplemod.items;
 
 import com.example.examplemod.EnergyStorageImpl;
 import com.example.examplemod.ExampleMod;
-import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.ItemLore;
 import net.minecraft.world.level.Level;
+import java.util.List;
 
 public class BatteryItem extends Item {
     public BatteryItem() {
         super(new Properties()
-                .component(ExampleMod.EXAMPLE_STORAGE.get(), new EnergyStorageImpl.Immutable(0))
+                .component(ExampleMod.EXAMPLE_STORAGE.get(), new EnergyStorageImpl.Immutable(0, 10000, 1000, 1000))
                 .stacksTo(1)
         );
     }
-
-
 
     @Override
     public boolean isBarVisible(ItemStack stack) {
@@ -43,10 +44,14 @@ public class BatteryItem extends Item {
     @Override
     public void inventoryTick(ItemStack stack, Level level, Entity entity, int p_41407_, boolean p_41408_) {
         if (level.isClientSide()) return;
-        if (stack.has(ExampleMod.EXAMPLE_STORAGE.get())) {
-            stack.modify(ExampleMod.EXAMPLE_STORAGE.get(), e -> {
-                e.receiveEnergy(10, false);
-            });
-        }
+        stack.getCapability(ExampleMod.ENERGY_COMPONENT_CAPABILITY).ifPresent(holder -> {
+            holder.getStorage().receiveEnergy(10, false);
+            holder.finalizeStorage();
+
+            var storage = stack.get(ExampleMod.EXAMPLE_STORAGE.get());
+            stack.set(DataComponents.LORE, new ItemLore(List.of(Component.literal("Energy: %s / %s".formatted(storage.getEnergyStored(), storage.getMaxEnergyStored())).withStyle(ChatFormatting.WHITE))));
+
+        });
+
     }
 }
