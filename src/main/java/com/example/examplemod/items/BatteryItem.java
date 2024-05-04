@@ -13,7 +13,7 @@ import net.minecraft.world.level.Level;
 public class BatteryItem extends Item {
     public BatteryItem() {
         super(new Properties()
-                .component(ExampleMod.EXAMPLE_STORAGE.get(), ExampleMod.cast(new EnergyStorageImpl(0)))
+                .component(ExampleMod.EXAMPLE_STORAGE.get(), new EnergyStorageImpl.Immutable(0))
                 .stacksTo(1)
         );
     }
