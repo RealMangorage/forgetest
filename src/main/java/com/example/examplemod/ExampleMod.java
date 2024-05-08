@@ -1,6 +1,5 @@
 package com.example.examplemod;
 
-import com.example.examplemod.api.IEnergyStorageHolder;
 import com.example.examplemod.items.BatteryItem;
 import net.minecraft.core.Direction;
 import net.minecraft.core.component.DataComponentType;
@@ -10,17 +9,20 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.ExtraCodecs;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.LiquidBlock;
+import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.material.FlowingFluid;
+import net.minecraftforge.common.ForgeMod;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.capabilities.CapabilityManager;
-import net.minecraftforge.common.capabilities.CapabilityToken;
+import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
 import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.energy.IEnergyStorage;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
-import net.minecraftforge.items.component.ImmutableProvider;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
@@ -29,15 +31,15 @@ import org.jetbrains.annotations.Nullable;
 
 // The value here should match an entry in the META-INF/mods.toml file
 @Mod(ExampleMod.MODID)
-public class ExampleMod
-{
-    public static final Capability<IEnergyStorageHolder> ENERGY_COMPONENT_CAPABILITY = CapabilityManager.get(new CapabilityToken<>() {});
+public class ExampleMod {
     public static final String MODID = "examplemod";
 
     public static final DeferredRegister<DataComponentType<?>> COMPONENT_TYPES = DeferredRegister.create(BuiltInRegistries.DATA_COMPONENT_TYPE.key(), MODID);
     public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, MODID);
+    public static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(ForgeRegistries.BLOCKS, MODID);
 
     public static final RegistryObject<BatteryItem> BATTERY_ITEM = ITEMS.register("battery", BatteryItem::new);
+    public static final RegistryObject<LiquidBlock> MILK_BLOCK = BLOCKS.register("milk", () -> new LiquidBlock(() -> (FlowingFluid) ForgeMod.FLOWING_MILK.get(), BlockBehaviour.Properties.of()));
 
     public static final RegistryObject<DataComponentType<Integer>> EXAMPLE_COMPONENT = COMPONENT_TYPES.register("test", () -> DataComponentType.<Integer>builder()
             .persistent(ExtraCodecs.intRange(0, Integer.MAX_VALUE))
@@ -53,8 +55,10 @@ public class ExampleMod
 
     public ExampleMod()
     {
+        ForgeMod.enableMilkFluid();
         var modBus = FMLJavaModLoadingContext.get().getModEventBus();
         ITEMS.register(modBus);
+        BLOCKS.register(modBus);
         COMPONENT_TYPES.register(modBus);
 
         MinecraftForge.EVENT_BUS.addGenericListener(ItemStack.class, this::onGather);
@@ -72,48 +76,22 @@ public class ExampleMod
         }
     }
 
-    public static class MyEnergyStorageCap implements IEnergyStorageHolder {
-        private final ItemStack stack;
-        private final IEnergyStorage energyStorage;
 
-        public MyEnergyStorageCap(ItemStack stack, IEnergyStorage energyStorage) {
-            this.stack = stack;
-            this.energyStorage = energyStorage;
-        }
-
-        @Override
-        public IEnergyStorage getStorage() {
-            return energyStorage;
-        }
-
-        @SuppressWarnings("unchecked")
-        private <T> T cast(DataComponentType<T> componentType, Object value) {
-            return (T) value;
-        }
-
-        @Override
-        @SuppressWarnings("all")
-        public void finalizeStorage() {
-            ImmutableProvider provider = (ImmutableProvider) energyStorage;
-            stack.set(ExampleMod.EXAMPLE_STORAGE.get(), cast(ExampleMod.EXAMPLE_STORAGE.get(), provider.immutable()));
-        }
-    }
 
     public static class MyProvider implements ICapabilityProvider {
-        private final LazyOptional<IEnergyStorageHolder> holderLazyOptional;
+        private final LazyOptional<IEnergyStorage> holderLazyOptional;
 
         public MyProvider(ItemStack stack) {
             this.holderLazyOptional = stack.has(ExampleMod.EXAMPLE_STORAGE.get()) ?
-                    LazyOptional.of(() -> new MyEnergyStorageCap(stack, stack.get(ExampleMod.EXAMPLE_STORAGE.get()).mutable())) : LazyOptional.empty();
+                    LazyOptional.of(() -> stack.get(ExampleMod.EXAMPLE_STORAGE.get()).mutable(stack)) : LazyOptional.empty();
         }
 
 
         @Override
         public @NotNull <T> LazyOptional<T> getCapability(@NotNull Capability<T> capability, @Nullable Direction direction) {
-            if (capability == ENERGY_COMPONENT_CAPABILITY)
+            if (capability == ForgeCapabilities.ENERGY)
                 return holderLazyOptional.cast();
             return LazyOptional.empty();
         }
     }
-
 }

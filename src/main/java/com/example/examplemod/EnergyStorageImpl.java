@@ -5,6 +5,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.energy.IEnergyStorage;
 import net.minecraftforge.items.component.ImmutabilityDefiner;
 import net.minecraftforge.items.component.ImmutableProvider;
@@ -36,7 +37,7 @@ public abstract class EnergyStorageImpl<M, IM> implements ImmutabilityDefiner<M,
     public static final StreamCodec<ByteBuf, EnergyStorageImpl.Immutable> ENERGY_STORAGE_STREAM_CODEC = ByteBufCodecs.fromCodec(ENERGY_STORAGE_CODEC);
 
 
-    public static final class Immutable extends EnergyStorageImpl<Mutable, Immutable> implements MutableProvider<Mutable>, IEnergyStorage {
+    public static final class Immutable extends EnergyStorageImpl<Mutable, Immutable> implements MutableProvider<Mutable, ItemStack>, IEnergyStorage {
         private final int energy;
         private final int capacity;
         private final int maxReceive;
@@ -48,9 +49,10 @@ public abstract class EnergyStorageImpl<M, IM> implements ImmutabilityDefiner<M,
             this.maxReceive = maxReceive;
             this.maxExtract = maxExtract;
         }
+
         @Override
-        public Mutable mutable() {
-            return new Mutable(energy, capacity, maxReceive, maxExtract);
+        public Mutable mutable(ItemStack stack) {
+            return new Mutable(stack, energy, capacity, maxReceive, maxExtract);
         }
 
         public int receiveEnergy(int maxReceive, boolean simulate) {
@@ -87,12 +89,15 @@ public abstract class EnergyStorageImpl<M, IM> implements ImmutabilityDefiner<M,
     }
 
     public static final class Mutable extends EnergyStorageImpl<Mutable, Immutable> implements ImmutableProvider<Immutable>, IEnergyStorage {
+        private final ItemStack stack;
         private int energy;
         private final int capacity;
         private final int maxReceive;
         private final int maxExtract;
 
-        public Mutable(int energy, int capacity, int maxReceive, int maxExtract) {
+
+        public Mutable(ItemStack stack, int energy, int capacity, int maxReceive, int maxExtract) {
+            this.stack = stack;
             this.energy = energy;
             this.capacity = capacity;
             this.maxReceive = maxReceive;
@@ -144,6 +149,11 @@ public abstract class EnergyStorageImpl<M, IM> implements ImmutabilityDefiner<M,
 
         public boolean canReceive() {
             return this.maxReceive > 0;
+        }
+
+        @Override
+        public void finalizeComponent() {
+            stack.set(ExampleMod.EXAMPLE_STORAGE.get(), immutable());
         }
     }
 }

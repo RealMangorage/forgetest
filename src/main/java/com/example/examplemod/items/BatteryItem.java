@@ -11,6 +11,8 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.ItemLore;
 import net.minecraft.world.level.Level;
+import net.minecraftforge.common.capabilities.ForgeCapabilities;
+
 import java.util.List;
 
 public class BatteryItem extends Item {
@@ -44,13 +46,12 @@ public class BatteryItem extends Item {
     @Override
     public void inventoryTick(ItemStack stack, Level level, Entity entity, int p_41407_, boolean p_41408_) {
         if (level.isClientSide()) return;
-        stack.getCapability(ExampleMod.ENERGY_COMPONENT_CAPABILITY).ifPresent(holder -> {
-            holder.getStorage().receiveEnergy(10, false);
-            holder.finalizeStorage();
+        stack.getCapability(ForgeCapabilities.ENERGY).ifPresent(energy -> {
+            energy.receiveEnergy(10, false);
+            energy.finalizeComponent();
 
             var storage = stack.get(ExampleMod.EXAMPLE_STORAGE.get());
             stack.set(DataComponents.LORE, new ItemLore(List.of(Component.literal("Energy: %s / %s".formatted(storage.getEnergyStored(), storage.getMaxEnergyStored())).withStyle(ChatFormatting.WHITE))));
-
         });
 
     }
